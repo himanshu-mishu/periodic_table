@@ -2,24 +2,29 @@
 
 PSQL="psql --username=freecodecamp --dbname=periodic_table -t --no-align -c"
 
-# If no argument provided
+# Check if argument is passed
 if [[ -z $1 ]]; then
   echo "Please provide an element as an argument."
-  exit 0
+  exit
 fi
 
-INPUT=$1
+# Determine what the input is (number, symbol, or name)
+if [[ $1 =~ ^[0-9]+$ ]]; then
+  CONDITION="atomic_number=$1"
+elif [[ $1 =~ ^[A-Z][a-z]?$ ]]; then
+  CONDITION="symbol='$1'"
+else
+  CONDITION="name='$1'"
+fi
 
-# Query to fetch element info by atomic_number, symbol, or name (case insensitive for symbol/name)
-ELEMENT=$($PSQL "SELECT elements.atomic_number, elements.name, elements.symbol, types.type, properties.atomic_mass, properties.melting_point_celsius, properties.boiling_point_celsius FROM elements JOIN properties ON elements.atomic_number = properties.atomic_number JOIN types ON properties.type_id = types.type_id WHERE elements.atomic_number = '$INPUT' OR LOWER(elements.symbol) = LOWER('$INPUT') OR LOWER(elements.name) = LOWER('$INPUT');")
+# Query the element
+ELEMENT=$($PSQL "SELECT atomic_number, name, symbol, type, atomic_mass, melting_point_celsius, boiling_point_celsius FROM elements INNER JOIN properties USING(atomic_number) INNER JOIN types USING(type_id) WHERE $CONDITION")
 
-# Check if element was found
+# If no result
 if [[ -z $ELEMENT ]]; then
   echo "I could not find that element in the database."
-  exit 0
+else
+  # Read values into variables
+  IFS="|" read -r ATOMIC_NUMBER NAME SYMBOL TYPE MASS MELT BOIL <<< "$ELEMENT"
+  echo "The element with atomic number $ATOMIC_NUMBER is $NAME ($SYMBOL). It's a $TYPE, with a mass of $MASS amu. $NAME has a melting point of $MELT celsius and a boiling point of $BOIL celsius."
 fi
-
-# Parse element info separated by pipe
-IFS='|' read -r atomic_number name symbol type atomic_mass melting_point boiling_point <<< "$ELEMENT"
-
-echo "The element with atomic number $atomic_number is $name ($symbol). It's a $type, with a mass of $atomic_mass amu. $name has a melting point of $melting_point celsius and a boiling point of $boiling_point celsius."
