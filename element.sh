@@ -30,3 +30,4 @@ else
 fi
 # TODO: Add support for lowercase input handling
 # Add insert statements or data for Fluorine and Neon.
+# Delete atomic_number 1000 entries in elements and properties tables.
